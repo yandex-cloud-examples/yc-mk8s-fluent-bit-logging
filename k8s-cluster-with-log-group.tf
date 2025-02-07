@@ -7,7 +7,8 @@
 locals {
   folder_id      = "" # Your cloud folder ID, same as for provider
   k8s_version    = "" # Desired version of Kubernetes. For available versions, see the documentation main page: https://cloud.yandex.com/en/docs/managed-kubernetes/concepts/release-channels-and-updates.
-  sa_name        = "" # Service account name. It must be unique in a cloud.
+  k8s_sa_name    = "" # Service account name for the Managed Service for Kubernetes. It must be unique in a cloud.
+  cl_sa_name     = "" # Service account name for the Cloud Logging. It must be unique in a cloud.
   log_group_name = "" # Loging group name
 
   # The following settings are predefined. Change them only if necessary.
@@ -107,13 +108,27 @@ resource "yandex_vpc_security_group" "k8s-public-services" {
 
 resource "yandex_iam_service_account" "k8s-sa" {
   description = "Service account for the Kubernetes cluster"
-  name        = local.sa_name
+  name        = local.k8s_sa_name
 }
 
-# Assign role "editor" to the Kubernetes service account
-resource "yandex_resourcemanager_folder_iam_binding" "editor" {
+resource "yandex_iam_service_account" "cloud-logging-sa" {
+  description = "Service account for the Kubernetes cluster"
+  name        = local.cl_sa_name
+}
+
+# Assign role "k8s.clusters.agent" to the Kubernetes service account
+resource "yandex_resourcemanager_folder_iam_binding" "k8s-clusters-agent" {
   folder_id = local.folder_id
-  role      = "editor"
+  role      = "k8s.clusters.agent"
+  members = [
+    "serviceAccount:${yandex_iam_service_account.k8s-sa.id}"
+  ]
+}
+
+# Assign role "vpc.publicAdmin" to the Kubernetes service account
+resource "yandex_resourcemanager_folder_iam_binding" "vpc-public-admin" {
+  folder_id = local.folder_id
+  role      = "vpc.publicAdmin"
   members = [
     "serviceAccount:${yandex_iam_service_account.k8s-sa.id}"
   ]
@@ -125,6 +140,24 @@ resource "yandex_resourcemanager_folder_iam_binding" "images-puller" {
   role      = "container-registry.images.puller"
   members = [
     "serviceAccount:${yandex_iam_service_account.k8s-sa.id}"
+  ]
+}
+
+# Assign role "logging.writer" to the Cloud Logging service account
+resource "yandex_resourcemanager_folder_iam_binding" "logging-writer" {
+  folder_id = local.folder_id
+  role      = "logging.writer"
+  members = [
+    "serviceAccount:${yandex_iam_service_account.cloud-logging-sa.id}"
+  ]
+}
+
+# Assign role "monitoring.editor" to the Cloud Logging service account
+resource "yandex_resourcemanager_folder_iam_binding" "monitoring-editor" {
+  folder_id = local.folder_id
+  role      = "monitoring.editor"
+  members = [
+    "serviceAccount:${yandex_iam_service_account.cloud-logging-sa.id}"
   ]
 }
 
@@ -148,7 +181,8 @@ resource "yandex_kubernetes_cluster" "k8s-cluster" {
   service_account_id      = yandex_iam_service_account.k8s-sa.id # ID of the service account for the cluster
   node_service_account_id = yandex_iam_service_account.k8s-sa.id # ID of the service account for the node group
   depends_on = [
-    yandex_resourcemanager_folder_iam_binding.editor,
+    yandex_resourcemanager_folder_iam_binding.k8s-clusters-agent,
+    yandex_resourcemanager_folder_iam_binding.vpc-public-admin,
     yandex_resourcemanager_folder_iam_binding.images-puller
   ]
 }
