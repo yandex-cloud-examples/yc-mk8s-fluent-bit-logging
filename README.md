@@ -5,5 +5,5 @@
 В этом репозитории расположены конфигурационные файлы:
 
 * [k8s-cluster-with-log-group.tf](k8s-cluster-with-log-group.tf) — для создания инфраструктуры для Managed Service for Kubernetes® и Cloud Logging через Terraform.
-* [systemd.yaml] — для установки Fluent Bit через Helm.
-* [config.yaml] — для установки Fluent Bit вручную.
+* [systemd.yaml](systemd.yaml) — для установки Fluent Bit через Helm.
+* [config.yaml](config.yaml) — для установки Fluent Bit вручную.
