@@ -1,0 +1,51 @@
+config:
+    inputs: |
+        [INPUT]
+            Name tail
+            Path /var/log/containers/*.log
+            multiline.parser docker, cri
+            Tag kube.*
+            Mem_Buf_Limit 5MB
+            Skip_Long_Lines On
+        [INPUT]
+            Name systemd
+            Tag host.*
+            Systemd_Filter _SYSTEMD_UNIT=kubelet.service
+            Systemd_Filter _SYSTEMD_UNIT=containerd.service
+            Read_From_Tail On
+    outputs: |
+        [OUTPUT]
+            Name                  yc-logging
+            Match                 kube.*
+            group_id              {{ .Values.loggingGroupId }}
+            resource_type         {kubernetes/namespace_name}
+            resource_id           {kubernetes/pod_name}
+            stream_name           {kubernetes/host}
+            message_key           log
+            level_key             severity
+            default_level         INFO
+            authorization         iam-key-file:/etc/secret/key.json
+        
+        [OUTPUT]
+            Name                  yc-logging
+            Match                 host.*
+            group_id              {{ .Values.loggingGroupId }}
+            resource_type         systemd
+            resource_id           {_SYSTEMD_UNIT}
+            stream_name           {_HOSTNAME}
+            message_key           MESSAGE
+            level_key             SEVERITY
+            default_level         INFO
+            authorization         iam-key-file:/etc/secret/key.json
+
+        {{- if eq .Values.objectStorageExport true }}
+        [OUTPUT]
+            Name                         s3
+            Match                        *
+            bucket                       {{ .Values.objectStorageBucket }}
+            region                       ru-central1
+            endpoint                     https://storage.yandexcloud.net
+            total_file_size              10M
+            s3_key_format                /$TAG[2]/$TAG[0]/%Y-%m/%d/%H%M%S-$UUID.log
+            s3_key_format_tag_delimiters .-
+        {{- end }}
