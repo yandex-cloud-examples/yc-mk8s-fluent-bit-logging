@@ -1,0 +1,3 @@
+# Sending Yandex Managed Service for Kubernetes® cluster logs to Yandex Cloud Logging using Fluent Bit
+
+With [Fluent Bit](https://fluentbit.io), you can transfer logs from pods and services in [Managed Service for Kubernetes®](https://yandex.cloud/docs/managed-kubernetes) to [Cloud Logging](https://yandex.cloud/docs/logging). See this [tutorial](https://yandex.cloud/docs/managed-kubernetes/tutorials/fluent-bit-logging) to learn how to prepare the infrastructure for Managed Service for Kubernetes® and Cloud Logging using Terraform. This repository contains the configuration file you will need: [k8s-cluster-with-log-group.tf](k8s-cluster-with-log-group.tf).
